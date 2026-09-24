@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Environment Variables & Secrets
+.env
+*.env
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Database / Storage / Testing
+*.db
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
