@@ -10,7 +10,7 @@ def get_gemini_client() -> genai.Client:
 
 def generate_test_response(
     prompt: str = "Respond with: 'Gemini API connection verified successfully!'",
-    model_name: str = "gemini-3.5-flash",
+    model_name: str = Config.GEMINI_MODEL,
 ) -> str:
     client = get_gemini_client()
     response = client.models.generate_content(
