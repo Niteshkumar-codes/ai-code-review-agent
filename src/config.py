@@ -11,8 +11,9 @@ class Config:
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "").strip()
     MONGODB_URI: str = os.getenv("MONGODB_URI", "").strip()
     # Gemini model name. Set GEMINI_MODEL in .env to override.
-    # Valid free-tier IDs: "gemini-2.0-flash" (default), "gemini-1.5-flash"
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
+    # Default: "gemini-3.8-flash" — confirmed available via client.models.list() for this key.
+    # Note: "gemini-2.0-flash" and "gemini-2.5-flash" are unavailable (HTTP 404) for new users.
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
 
     @classmethod
     def validate(cls) -> dict[str, bool]:
