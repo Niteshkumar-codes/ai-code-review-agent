@@ -5,6 +5,11 @@ from src.agent_state import AgentState
 from src.config import Config
 from src.gemini_client import get_gemini_client
 
+# ---------------------------------------------------------------------------
+# HTTP timeout for production Gemini calls made by the review nodes.
+# Unit is milliseconds; 120_000 ms = 120 seconds.
+# ---------------------------------------------------------------------------
+_REVIEW_NODE_TIMEOUT_MS: int = 120_000
 
 # ---------------------------------------------------------------------------
 # Retry predicate: only retry genuine transient server-side failures.
@@ -43,6 +48,7 @@ def _call_gemini(
     config = types.GenerateContentConfig(
         system_instruction=system_instruction,
         temperature=0.2,
+        http_options=types.HttpOptions(timeout=_REVIEW_NODE_TIMEOUT_MS),
     )
     try:
         response = client.models.generate_content(

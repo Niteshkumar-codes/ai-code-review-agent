@@ -3,6 +3,12 @@ from google.genai.errors import APIError
 from src.config import Config
 from src.gemini_client import get_gemini_client
 
+# ---------------------------------------------------------------------------
+# HTTP timeout for the production Gemini call in review_code_diff().
+# Unit is milliseconds; 120_000 ms = 120 seconds.
+# ---------------------------------------------------------------------------
+_CODE_REVIEW_TIMEOUT_MS: int = 120_000
+
 REVIEW_SYSTEM_INSTRUCTION = """You are an expert software engineer and code reviewer.
 Perform a strict, high-quality code review of the provided git diff.
 
@@ -41,6 +47,7 @@ def review_code_diff(
         config = types.GenerateContentConfig(
             system_instruction=REVIEW_SYSTEM_INSTRUCTION,
             temperature=0.2,
+            http_options=types.HttpOptions(timeout=_CODE_REVIEW_TIMEOUT_MS),
         )
         response = client.models.generate_content(
             model=model_name,
