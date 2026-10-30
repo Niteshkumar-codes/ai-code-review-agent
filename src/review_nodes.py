@@ -1,3 +1,4 @@
+import httpx
 from google.genai import types
 from google.genai.errors import APIError, ServerError
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
@@ -15,22 +16,47 @@ _REVIEW_NODE_TIMEOUT_MS: int = 120_000
 # Retry predicate: only retry genuine transient server-side failures.
 # HTTP 429 (quota/rate-limit), 400/401/403 (client errors), and
 # 404 (invalid model name) are NOT retried — they require a config fix.
-# HTTP 500/502/503/504 and non-API RuntimeErrors (network, encoding) are
-# considered transient and are retried with bounded exponential backoff.
+# HTTP 500/502/503/504 are retried (transient server errors).
+# httpx.TimeoutException and httpx.ConnectError are retried (network
+# transport timeouts and transient connectivity failures).
+# Any other non-APIError cause (ValueError, TypeError, etc.) is NOT retried
+# because it indicates a programming error or permanent condition.
 # ---------------------------------------------------------------------------
 _TRANSIENT_STATUS_CODES: frozenset[int] = frozenset({500, 502, 503, 504})
 
+# Transport-level exceptions that the SDK considers transiently retriable.
+# Mirrors google.genai._api_client._HTTPX_TRANSIENT_EXC (httpx.TimeoutException
+# covers ReadTimeout, WriteTimeout, ConnectTimeout, PoolTimeout as subclasses).
+_TRANSIENT_HTTPX_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    httpx.TimeoutException,
+    httpx.ConnectError,
+)
+
 
 def _is_transient_error(exc: BaseException) -> bool:
-    """Return True only for errors that are safe and worthwhile to retry."""
+    """Return True only for errors that are safe and worthwhile to retry.
+
+    The retry decorator wraps every exception raised by generate_content() as a
+    RuntimeError (with the original as __cause__).  This predicate inspects the
+    chain to distinguish truly transient failures from permanent ones:
+
+    * APIError with a 5xx status code  → transient, retry.
+    * httpx.TimeoutException / httpx.ConnectError as __cause__  → transient,
+      retry (the SDK timed out or lost the connection before getting a response).
+    * Any other exception (APIError 4xx, ValueError, TypeError …)  → permanent,
+      do not retry.
+    """
     if not isinstance(exc, RuntimeError):
         return False
     cause = exc.__cause__
     if isinstance(cause, APIError):
         status = getattr(cause, "code", None)
         return status in _TRANSIENT_STATUS_CODES
-    # RuntimeError without an APIError cause (e.g. network, encoding) — retry.
-    return True
+    if isinstance(cause, _TRANSIENT_HTTPX_EXCEPTIONS):
+        # Network-level timeout or connection failure — safe to retry.
+        return True
+    # Any other __cause__ (ValueError, TypeError, None, …) is not transient.
+    return False
 
 
 @retry(
