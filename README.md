@@ -52,7 +52,7 @@ Each review node has a distinct, scoped responsibility — change analysis, secu
 | **Hardened API calls** | 120-second HTTP timeouts on all production Gemini calls |
 | **Smart retry logic** | Tenacity retries only on transient 5xx server errors and `httpx` transport failures; never retries 4xx or quota errors |
 | **Layered error handling** | `APIError`, `RuntimeError`, and `ValueError` are caught and re-raised with clean messages |
-| **Comprehensive offline tests** | Six standalone test scripts, all runnable without API credentials |
+| **Comprehensive offline tests** | Seven standalone test scripts, all runnable without API credentials |
 
 ---
 
@@ -152,6 +152,7 @@ ai-code-review-agent/
 ├── test_production_gemini_timeouts.py  # Offline: verifies 120 s timeouts are wired
 ├── test_review_node_behaviour.py  # Offline: unit tests for all five node functions
 ├── test_code_reviewer_edge_cases.py  # Offline: unit tests for code_reviewer.py
+├── test_commit_msg_subject.py     # Offline: regression tests for commit message extraction fix
 │
 ├── build_report_pdf.py         # Standalone PDF report builder (uses fpdf2; not part of workflow)
 ├── requirements.txt            # Runtime + test dependencies
@@ -384,7 +385,7 @@ You can also run the integration tests in isolation to verify each component:
 
 ## Offline Tests
 
-Six standalone offline test scripts exercise the codebase without making any real API calls. All use `unittest.mock` and sentinel environment variables. **No API credentials are needed.**
+Seven standalone offline test scripts exercise the codebase without making any real API calls. All use `unittest.mock` and sentinel environment variables. **No API credentials are needed.**
 
 | Script | What it covers |
 |---|---|
@@ -394,6 +395,7 @@ Six standalone offline test scripts exercise the codebase without making any rea
 | `test_production_gemini_timeouts.py` | Regression tests that both `_call_gemini()` and `review_code_diff()` wire `HttpOptions(timeout=120_000)` into every Gemini request |
 | `test_review_node_behaviour.py` | Tests all five node functions: return-key contract, single `_call_gemini` invocation, RuntimeError propagation, prompt assembly |
 | `test_code_reviewer_edge_cases.py` | Tests `review_code_diff()` context handling, `APIError` wrapping, generic exception wrapping, and empty response guard |
+| `test_commit_msg_subject.py` | Regression tests for the commit message subject extraction fix; covers `None`, empty string, and multi-line message inputs via unit and integration-style mocks |
 
 ### Running all offline tests
 
@@ -404,6 +406,7 @@ Six standalone offline test scripts exercise the codebase without making any rea
 .venv\Scripts\python.exe test_production_gemini_timeouts.py
 .venv\Scripts\python.exe test_review_node_behaviour.py
 .venv\Scripts\python.exe test_code_reviewer_edge_cases.py
+.venv\Scripts\python.exe test_commit_msg_subject.py
 ```
 
 All scripts exit with code `0` on success and `1` on failure, printing a clear `[OK]`/`[FAIL]` report per assertion.
@@ -513,6 +516,7 @@ Contributions, bug reports, and feature suggestions are welcome.
    .venv\Scripts\python.exe test_production_gemini_timeouts.py
    .venv\Scripts\python.exe test_review_node_behaviour.py
    .venv\Scripts\python.exe test_code_reviewer_edge_cases.py
+   .venv\Scripts\python.exe test_commit_msg_subject.py
    ```
 4. Commit with a descriptive message following the existing commit style (`feat:`, `fix:`, `test:`, `chore:`).
 5. Open a pull request with a clear description of what was changed and why.
