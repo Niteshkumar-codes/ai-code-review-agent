@@ -50,7 +50,7 @@ def main() -> None:
 
         combined_diff = "\n\n".join(valid_patches)
         commit_sha = commit_data.get("sha", "unknown")[:7]
-        commit_msg = commit_data.get("message", "").splitlines()[0]
+        commit_msg = next(iter((commit_data.get("message") or "").splitlines()), "")
         context_str = f"Commit {commit_sha}: {commit_msg}"
 
         print("[OK] Review input prepared")
